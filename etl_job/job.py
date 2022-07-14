@@ -13,11 +13,19 @@ s3_client = boto3.client('s3')
 
 def getDF(bucketName, fileName):
     
-    response = s3_client.get_object(Bucket=bucketName, Key=fileName)
-    data = response['Body'].read()
+    res = s3_client.get_object(Bucket=bucketName, Key=fileName)
+    data = res['Body'].read()
     data = json.loads(data)
     df = pd.DataFrame(data['data'])
     return df
+
+def writeJsonTos3(bucket, filename, df):
+    output = {}    
+    output['data'] = df.to_dict(orient = 'records')
+    object = s3_obj.Object(bucket, filename)
+    result = object.put(Body=json.dumps(output))  
+    return result
+
 
 dion_df = getDF(bucket, dion)
 sawyer_df = getDF(bucket, sawyer)
@@ -75,7 +83,18 @@ lookup2 = pd.merge(depivoted_df, product_master_df_copy2, on='DISTRIBUTOR_ITEM_I
 
 output1 = lookup2.drop(columns=['DISTRIBUTOR_GALLON_CONVERSION_FACTOR', 'MANUFACTURER_NAME', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', ])
 
+
+res = writeJsonTos3(bucket, 'output1.json', output1)
+
+print(res)
+
+
 output2 = output1[output1['DISTRIBUTOR_SALES_CODE_ID'] != '4']
+
+res = writeJsonTos3(bucket, 'output2.json', output2)
+
+print(res)
+
 
 product_master_df_copy3 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME','DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT',
                                             'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_INVENTORY_TYPE', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE' #(3)', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE (1)'
@@ -89,4 +108,4 @@ lookup3 = lookup3.drop(columns=['DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_INVENTO
 
 lookup3_copy = lookup3.groupby(['COMPONENT_COMPUTED'])
 
-print(lookup3_copy.count().nunique) # wrong, requirement is diff
+#print(lookup3_copy.count().nunique) # wrong, requirement is diff
