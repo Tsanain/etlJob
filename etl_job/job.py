@@ -1,6 +1,3 @@
-from calendar import c
-from heapq import merge
-from re import L
 import boto3
 import json
 import pandas as pd
