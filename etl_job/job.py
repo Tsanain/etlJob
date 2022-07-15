@@ -27,6 +27,13 @@ def writeJsonTos3(bucket, filename, df):
     return result
 
 
+def printcol(df):
+    i = 0
+    for col in df.columns:
+        print(col)
+        i+=1
+    print("count:", i)
+
 dion_df = getDF(bucket, dion)
 sawyer_df = getDF(bucket, sawyer)
 product_master_df = getDF(bucket, product_master)
@@ -44,16 +51,29 @@ lookup1 = lookup1.iloc[:, 0:17]
 product_master_df_copy['DISTRIBUTOR_PACK_COUNT_DESCRIPTION'] = product_master_df_copy.DISTRIBUTOR_PACK_COUNT_DESCRIPTION.astype(str).astype(float)
 
 
+#not used any where
+
 lookup1['newCol'] = lookup1.DISTRIBUTOR_COMPONENT1_QUANTITY * product_master_df_copy.DISTRIBUTOR_PACK_COUNT_DESCRIPTION
 
 lookup1['newCol2'] = np.where(lookup1['DISTRIBUTOR_COMPONENT1_QUANTITY'] == lookup1_copy['DISTRIBUTOR_GALLON_CONVERSION_FACTOR'], 'Match', 'Do Not Match')
 
-depivoted_df = pd.melt(lookup1, id_vars=['DISTRIBUTOR_R3_TYPE', 'DISTRIBUTOR_ITEM_ID', 'RECORD_TYPE', 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY','DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT'], 
+
+# rows to be removed and col to be renamed, steps not opening.
+res = writeJsonTos3(bucket, 'R3 Exceptions: Component1 Item Quantity and Conversion Factor Do Not Match.json', lookup1)
+
+depivoted_df = pd.melt(lookup1, id_vars=['DISTRIBUTOR_R3_TYPE', 'DISTRIBUTOR_ITEM_ID', 'RECORD_TYPE', 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY','DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPANY_ID'], 
                        value_vars=['DISTRIBUTOR_COMPONENT1_ITEM_ID','DISTRIBUTOR_COMPONENT2_ITEM_ID','DISTRIBUTOR_COMPONENT3_ITEM_ID','DISTRIBUTOR_COMPONENT4_ITEM_ID'],
                        var_name='REFERENCE', value_name='COMPONENT_COMPUTED'
                 )
 
-depivoted_df = depivoted_df[depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT1_ITEM_ID']
+#mistake
+#depivoted_df = depivoted_df[depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT1_ITEM_ID']
+
+depivoted_df['COMPONENT_COMPUTED'].replace('', np.nan, inplace=True)
+
+depivoted_df.dropna(subset=['COMPONENT_COMPUTED'], inplace=True)
+
+
 
 depivoted_df['UNIT_OF_MEASUREMENT(COMPUTED)'] = np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT1_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT, 
                                                 np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT2_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT,
@@ -83,17 +103,20 @@ lookup2 = pd.merge(depivoted_df, product_master_df_copy2, on='DISTRIBUTOR_ITEM_I
 
 output1 = lookup2.drop(columns=['DISTRIBUTOR_GALLON_CONVERSION_FACTOR', 'MANUFACTURER_NAME', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', ])
 
+output1.rename(columns = {'Columns':'REFERENCE','COMPONENT_COMPUTED' : 'DISTRIBUTOR_COMPONENT1_ITEM_ID', 'UNIT_OF_MEASUREMENT(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'COMPONENT_QUANTITY(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_QUANTITY'}, inplace=True)
 
-res = writeJsonTos3(bucket, 'output1.json', output1)
+res = writeJsonTos3(bucket, 'Output: R3 Table Before Sales Code Removal Step.json', output1)
 
-print(res)
+#print(res)
 
 
 output2 = output1[output1['DISTRIBUTOR_SALES_CODE_ID'] != '4']
 
-res = writeJsonTos3(bucket, 'output2.json', output2)
+output2.rename(columns = {'Columns':'REFERENCE','COMPONENT_COMPUTED' : 'DISTRIBUTOR_COMPONENT1_ITEM_ID', 'UNIT_OF_MEASUREMENT(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'COMPONENT_QUANTITY(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_QUANTITY'}, inplace=True)
 
-print(res)
+res = writeJsonTos3(bucket, 'Output: Micro - De-Pivot R3 Table.json', output2)
+
+#print(res)
 
 
 product_master_df_copy3 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME','DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT',
@@ -102,10 +125,79 @@ product_master_df_copy3 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR
                                             ]]
 
 
-lookup3 = pd.merge(output1, product_master_df_copy3, left_on='COMPONENT_COMPUTED' ,right_on='DISTRIBUTOR_ITEM_ID')
+lookup3 = pd.merge(output1, product_master_df_copy3, left_on='DISTRIBUTOR_COMPONENT1_ITEM_ID' ,right_on='DISTRIBUTOR_ITEM_ID')
 
 lookup3 = lookup3.drop(columns=['DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_INVENTORY_TYPE'])
 
-lookup3_copy = lookup3.groupby(['COMPONENT_COMPUTED'])
+#lookup3_copy = lookup3.groupby(['DISTRIBUTOR_COMPONENT1_ITEM_ID'])
 
 #print(lookup3_copy.count().nunique) # wrong, requirement is diff
+
+
+depivoted_sp_df = pd.melt(sawyer_df, id_vars=['RECORD_TYPE','DISTRIBUTOR_ITEM_ID','DISTRIBUTOR_R3_TYPE', 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY','DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPANY_ID', 'DISTRIBUTOR_WAREHOUSE_ID'], 
+                       value_vars=['DISTRIBUTOR_COMPONENT1_ITEM_ID','DISTRIBUTOR_COMPONENT2_ITEM_ID','DISTRIBUTOR_COMPONENT3_ITEM_ID','DISTRIBUTOR_COMPONENT4_ITEM_ID'],
+                       var_name='Columns', value_name='COMPONENT_COMPUTED'
+                )
+
+
+depivoted_sp_df['COMPONENT_COMPUTED'].replace('', np.nan, inplace=True)
+
+depivoted_sp_df.dropna(subset=['COMPONENT_COMPUTED'], inplace=True)
+
+
+depivoted_sp_df['UNIT_OF_MEASUREMENT(COMPUTED)'] = np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT1_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT, 
+                                                np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT2_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT,
+                                                np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT3_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT,
+                                                np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT4_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT,''
+                                                        ))))
+
+
+depivoted_sp_df['COMPONENT_QUANTITY(COMPUTED)'] = np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT1_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT1_QUANTITY, 
+                                                np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT2_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT2_QUANTITY,
+                                                np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT3_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT3_QUANTITY,
+                                                np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT4_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT4_QUANTITY,''
+                                                        ))))
+
+depivoted_sp_df.drop(columns=['DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT','DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT',
+'DISTRIBUTOR_COMPONENT1_QUANTITY','DISTRIBUTOR_COMPONENT2_QUANTITY','DISTRIBUTOR_COMPONENT3_QUANTITY','DISTRIBUTOR_COMPONENT4_QUANTITY'], inplace=True)
+
+depivoted_sp_df.rename(columns = {'Columns':'REFERENCE','COMPONENT_COMPUTED' : 'DISTRIBUTOR_COMPONENT1_ITEM_ID', 'UNIT_OF_MEASUREMENT(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'COMPONENT_QUANTITY(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_QUANTITY'}, inplace=True)
+
+
+
+
+product_master_df_copy4 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_SALES_CODE_ID', 'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE', 'DISTRIBUTOR_SHIPPABLE_PRODUCT_GROUP', 'DISTRIBUTOR_PACK_DESCRIPTION', 'DISTRIBUTOR_UNITS_PER_LAYER']]
+
+
+lookup4 = pd.merge(depivoted_sp_df, product_master_df_copy4, on='DISTRIBUTOR_ITEM_ID')
+
+
+lookup4.drop(columns=['DISTRIBUTOR_SHIPPABLE_PRODUCT_GROUP'], inplace=True)
+
+
+
+
+
+res = writeJsonTos3(bucket, 'Output: SP R3 Table Before Sales Code Removal Step.json', lookup4)
+
+lookup4_copy = lookup4[lookup4['DISTRIBUTOR_SALES_CODE_ID'] != '4']
+
+res = writeJsonTos3(bucket, 'Output: Micro - De-Pivot SP R3 Table.json', lookup4_copy) # less no. of rows as product master is diff, and has less rows.
+
+product_master_df_copy5 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME', 'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE', 'DISTRIBUTOR_UNITS_PER_LAYER']]
+
+product_master_df_copy5.rename(columns = {'DISTRIBUTOR_ITEM_DESCRIPTION': 'DISTRIBUTOR_ITEM_DESCRIPTION (DISTRIBUTOR_ITEM_ID)', 'MANUFACTURER_NAME' : 'MANUFACTURER_NAME (COMPONENT1)', 'DISTRIBUTOR_ITEM_ID' : 'DISTRIBUTOR_ITEM_ID(1)'}, inplace=True )
+
+#not sure if merge is on lookup4 or not.
+
+lookup5 = pd.merge(lookup4, product_master_df_copy5, left_on='DISTRIBUTOR_COMPONENT1_ITEM_ID', right_on='DISTRIBUTOR_ITEM_ID(1)')
+
+lookup5.drop(columns= ['DISTRIBUTOR_WAREHOUSE_ID'])
+
+# wrong
+
+df = lookup5.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID'])
+
+df = df.count().reset_index()
+
+#print(df[['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_COMPONENT1_ITEM_ID']])
