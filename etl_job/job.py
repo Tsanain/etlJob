@@ -74,8 +74,7 @@ product_master_df_copy['DISTRIBUTOR_PACK_COUNT_DESCRIPTION'] = product_master_df
 
 # not used any where
 
-lookup1['newCol'] = lookup1.DISTRIBUTOR_COMPONENT1_QUANTITY * \
-    product_master_df_copy.DISTRIBUTOR_PACK_COUNT_DESCRIPTION
+lookup1['newCol'] = lookup1.DISTRIBUTOR_COMPONENT1_QUANTITY *product_master_df_copy.DISTRIBUTOR_PACK_COUNT_DESCRIPTION
 
 lookup1['newCol2'] = np.where(lookup1['DISTRIBUTOR_COMPONENT1_QUANTITY'] ==
                               lookup1_copy['DISTRIBUTOR_GALLON_CONVERSION_FACTOR'], 'Match', 'Do Not Match')
@@ -163,18 +162,10 @@ lookup3 = pd.merge(output1, product_master_df_copy3,
 lookup3 = lookup3.drop(
     columns=['DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_INVENTORY_TYPE'])
 
-#lookup3_copy = lookup3.groupby(['DISTRIBUTOR_COMPONENT1_ITEM_ID'])
-
-# print(lookup3_copy.count().nunique) # wrong, requirement is diff
-
-printCol(lookup3)
-
-df = lookup3.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID'])
-
-df = df.count().reset_index()
+df = lookup3.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID_x']).agg(COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID = pd.NamedAgg(column='DISTRIBUTOR_COMPONENT1_ITEM_ID'
+, aggfunc= "nunique"))
 
 print(df)
-
 ###############################################################################################################################################################################################################################################################################################################################################################################
 
 depivoted_sp_df = pd.melt(sawyer_df, id_vars=['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_R3_TYPE', 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY', 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPANY_ID', 'DISTRIBUTOR_WAREHOUSE_ID'],
@@ -224,7 +215,6 @@ res = writeJsonTos3(
 
 lookup4_copy = lookup4[lookup4['DISTRIBUTOR_SALES_CODE_ID'] != '4']
 
-# less no. of rows as product master is diff, and has less rows.
 res = writeJsonTos3(
     bucket, 'Output: Micro - De-Pivot SP R3 Table.json', lookup4_copy)
 
@@ -241,13 +231,10 @@ lookup5 = pd.merge(lookup4, product_master_df_copy5,
 
 lookup5.drop(columns=['DISTRIBUTOR_WAREHOUSE_ID'])
 
-# wrong
+df = lookup5.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID']).agg(COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID = pd.NamedAgg(column='DISTRIBUTOR_COMPONENT1_ITEM_ID'
+, aggfunc= "nunique"))
 
-df = lookup5.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID'])
-
-df = df.count().reset_index()
-
-#print(df[['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_COMPONENT1_ITEM_ID']])
+print(df)
 
 ###############################################################################################################################################################################################################################################################################################################################################################################
 
@@ -256,3 +243,6 @@ df_start = getDF(
 
 df_import = getDF(
     bucket, 'Output: SP R3 Table Before Sales Code Removal Step.json')
+
+###############################################################################################################################################################################
+# eof / last loc is ommited when this file is upload to glue script.

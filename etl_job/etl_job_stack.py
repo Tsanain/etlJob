@@ -55,5 +55,3 @@ class EtlJobStack(Stack):
                                  python_version=PYTHON_VERSION,
                                  script_location="s3://tsan-etljob-script/Scripts/job.py"),
                              )
-
-# create bucket -> role -> job.py to bucket -> python glue script
