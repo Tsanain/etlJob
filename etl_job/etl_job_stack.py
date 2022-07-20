@@ -23,7 +23,7 @@ class EtlJobStack(Stack):
             self, id="tsan-data-bucket", bucket_arn="arn:aws:s3:::tsan-bucket-trial")
 
         script_bucket = s3.Bucket(
-            self, id="tsan-eltJob-script", bucket_name="tsan-etljob-script", versioned=True)
+            self, id="tsan-eltJob-script", bucket_name="tsan-etljob-script", versioned=False, block_public_access=s3.BlockPublicAccess.BLOCK_ALL)
 
 
         policy_doc = iam.PolicyStatement(actions=[
@@ -43,6 +43,8 @@ class EtlJobStack(Stack):
                         assumed_by=iam.ServicePrincipal("glue.amazonaws.com"))
         glue_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name(
             "service-role/AWSGlueServiceRole"))
+        
+        glue_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"))
 
         PYTHON_VERSION = "3"
         COMMAND_NAME = "pythonshell"
@@ -54,4 +56,18 @@ class EtlJobStack(Stack):
                                  name=COMMAND_NAME,
                                  python_version=PYTHON_VERSION,
                                  script_location="s3://tsan-etljob-script/Scripts/job.py"),
+                                 glue_version="2.0"
                              )
+
+        schedule = "cron(40 4 * * ? *)" #in UTC
+
+        cfn_trigger = glue.CfnTrigger(self, "MyCfnTrigger",
+            actions=[glue.CfnTrigger.ActionProperty(
+            job_name=jobName,
+            timeout=123
+            )],
+            type="SCHEDULED",
+            name="scheduled-etljob",
+            schedule=schedule,
+            start_on_creation=True,
+            )
