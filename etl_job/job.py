@@ -70,7 +70,6 @@ def compCol(a, b):
 dion_df = getDF(bucket, dion)
 product_master_df = getDF(bucket, product_master)
 
-
 '''######## IMPORT: SP R3 MASTER ##################################################################################################################################################################################################################################################################################################################################################################'''
 
 sawyer_df = getDF(bucket, sawyer)
@@ -176,10 +175,6 @@ output1.rename(columns={'Columns': 'REFERENCE', 'COMPONENT_COMPUTED': 'DISTRIBUT
 res = writeJsonTos3(
     dest_bucket, 'Output: R3 Table Before Sales Code Removal Step.json', output1)
 
-
-# print(res)
-
-
 output2 = output1[output1['DISTRIBUTOR_SALES_CODE_ID'] != '4']
 
 output2.rename(columns={'Columns': 'REFERENCE', 'COMPONENT_COMPUTED': 'DISTRIBUTOR_COMPONENT1_ITEM_ID', 'UNIT_OF_MEASUREMENT(COMPUTED)':
@@ -188,9 +183,6 @@ output2.rename(columns={'Columns': 'REFERENCE', 'COMPONENT_COMPUTED': 'DISTRIBUT
 
 res = writeJsonTos3(
     dest_bucket, 'Output: Micro - De-Pivot R3 Table.json', output2)
-
-# print(res)
-
 
 product_master_df_copy3 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT',
                                             # (3)', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE (1)'
@@ -296,6 +288,8 @@ df_start = getDF(
 df_import = getDF(
     dest_bucket, 'Output: SP R3 Table Before Sales Code Removal Step.json')
 
+#Is this the way to append 2 dataframes..... 
+
 df = pd.concat([df_start, df_import], axis=0, ignore_index=True)
 
 df = df[df['DISTRIBUTOR_COMPANY_ID'] != 'SP']
@@ -340,9 +334,14 @@ df_import = getDF(
 
 df = pd.merge(df_start, df_import, on='DISTRIBUTOR_ITEM_ID')
 
-# On what column to remove rows
 
-# df = df[df[]]
+# On what column to remove rows -> remove row which have nan values for item_id.
+#print(df[df['DISTRIBUTOR_ITEM_ID'] == '']) -> empty dataframe, so no mull values.
+
+df.drop(columns=['REFERENCE', 'DISTRIBUTOR_ITEM_STATUS_DESCRIPTION', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'DISTRIBUTOR_SALES_CODE_ID', 'DISTRIBUTOR_PACK_DESCRIPTION', 'DISTRIBUTOR_UNITS_PER_LAYER', 'COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID', 'RECORD_TYPE_y'], inplace=True)
+df.rename(columns={'RECORD_TYPE_x' : 'RECORD_TYPE'}, inplace= True)
+
+res = writeJsonTos3(dest_bucket, 'Output: Join - Unique Source Item per Component Item ID.json', df)
 
 '''
 ##### IMPORT PRODUCT MASTER ### lower  ##########################################################################################################################################################################################################################################################################################################################################################################
@@ -395,11 +394,138 @@ lookup2['EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1'] = np.where(
 
 lookup2.drop(columns=['DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT (repack)', 'DISTRIBUTOR_ITEM_ID (Source)', 'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT (Source)'], inplace=True)
 
-res = writeJsonTos3(dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity', lookup2)
+res = writeJsonTos3(dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (upper).json', lookup2)
 
 
 '''##### JOIN: PRODUCT MASTER TO COMPUTE CORRECT ITEM QUANTITY # lower # #########################################################################################################################################################################################################################################################################################################################################################################'''
 
+df_start = getDF(dest_bucket, 'Output: Join - Unique Source Item per Component Item ID.json')
+
+df_import = getDF(dest_bucket, 'Output: Import - Product Master.json')
+
+df_import = df_import[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_PACK_COUNT_DESCRIPTION',
+                      'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE']]
+
+lookup1 = pd.merge(df_start, df_import, on='DISTRIBUTOR_ITEM_ID')
+
+lookup1['DISTRIBUTOR_COMPONENT1_QUANTITY'] = lookup1.DISTRIBUTOR_COMPONENT1_QUANTITY.astype(int)
+
+lookup1['DISTRIBUTOR_PACK_COUNT_DESCRIPTION'] = lookup1.DISTRIBUTOR_PACK_COUNT_DESCRIPTION.astype(int)
+
+lookup1['New_Column'] = lookup1.DISTRIBUTOR_COMPONENT1_QUANTITY * lookup1.DISTRIBUTOR_PACK_COUNT_DESCRIPTION
+
+lookup1.rename(columns={'DISTRIBUTOR_COMPONENT1_QUANTITY' : 'DISTRIBUTOR_COMPONENT1_CONVERSION_QUANTITY', 'New_Column' : 'DISTRIBUTOR_COMPONENT1_QUANTITY'}, inplace= True)
+
+lookup1.drop(columns=['DISTRIBUTOR_PACK_COUNT_DESCRIPTION'], inplace= True)
+
+df_import2 = getDF(dest_bucket, 'Output: Import - Product Master.json')
+
+df_import2 = df_import2[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE']]
+
+df_import2.rename(columns={'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT' : 'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT (repack)'}, inplace=True)
+
+lookup2 = pd.merge(lookup1, df_import2, on='DISTRIBUTOR_ITEM_ID')
+
+df_import3 = getDF(dest_bucket, 'Output: Import - Product Master.json')
+
+df_import3 = df_import3[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE']]
+df_import3.rename(columns={'DISTRIBUTOR_ITEM_ID' : 'DISTRIBUTOR_ITEM_ID (Source)', 'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT':'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT (Source)'}, inplace=True)
+
+lookup3 = pd.merge(lookup2, df_import3, left_on='DISTRIBUTOR_COMPONENT1_ITEM_ID', right_on='DISTRIBUTOR_ITEM_ID (Source)')
+
+lookup3['EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1'] = np.where(lookup3['DISTRIBUTOR_COMPONENT1_QUANTITY'] == "1",  np.where(lookup3['DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT'] != "GAL", "R3M06", ""), "")
+
+# DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE has 10 versions in form of _x _y. How to resolve this....
+
+lookup3.drop(columns=['DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT (Source)', 
+                'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT (repack)', 'DISTRIBUTOR_ITEM_ID (Source)'], inplace=True)
+
+# same file name as above step....
+res = writeJsonTos3(dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json', lookup3) 
+
+'''##### JOIN: DS AND SP R3 TABLES ###########################################################################################################################################################################################################################################################################################################################################################################'''
+
+
+df_start = getDF(dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (upper).json')
+
+df_import = getDF(dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json')
+
+lookup1 = pd.merge(df_start, df_import, on='DISTRIBUTOR_ITEM_ID')
+
+lookup1 = lookup1[lookup1['DISTRIBUTOR_ITEM_ID'] != '']
+
+res = writeJsonTos3(dest_bucket, 'Output: SP R3 Table for Append.json', lookup1)
+
+
+'''##### APPEND: DS AND SP R3 TABLES ###########################################################################################################################################################################################################################################################################################################################################################################'''
+
+df_start = getDF(dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json')
+
+df_import = getDF(dest_bucket, 'Output: SP R3 Table for Append.json')
+
+df = pd.concat([df_start, df_import], axis=0, ignore_index=True)
+
+#DOUBT in these _x, _y
+
+df.drop(columns=['DISTRIBUTOR_ITEM_DESCRIPTION', 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1', 'DISTRIBUTOR_COMPANY_ID', 'RECORD_TYPE_x', 'DISTRIBUTOR_R3_TYPE_x', 'DISTRIBUTOR_COMPANY_ID_x', 'DISTRIBUTOR_WAREHOUSE_ID_x'
+, 'DISTRIBUTOR_COMPONENT1_ITEM_ID_x', 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT_x', 'DISTRIBUTOR_COMPONENT1_CONVERSION_QUANTITY_x', 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1_x'], inplace= True)
+
+
+res = writeJsonTos3(dest_bucket, 'Output: Append - DS and SP R3 Table.json', df)
+
+
+'''#######  MICRO: VALIDATE ITEM ID ##################################################################################################################################################################################################################################################################################################################################################################'''
+
+df_start = getDF(dest_bucket, 'Output: Append - DS and SP R3 Table.json')
+
+df_start['EXCEPTION: DISTRIBUTOR ITEM ID IS BLANK'] = np.where(df_start['DISTRIBUTOR_ITEM_ID'] == '', "R3M01", "")
+
+res = writeJsonTos3(dest_bucket, 'Output: Micro - Validate Item ID.json', df_start)
+
+
+'''#######  MICRO: DISTRIBUTOR R3 TYPE ##################################################################################################################################################################################################################################################################################################################################################################'''
+
+df_start = getDF(dest_bucket, 'Output: Micro - Validate Item ID.json')
+
+df_start['EXCEPTION: R3 TYPE IS BLANK'] = np.where(df_start['DISTRIBUTOR_R3_TYPE'] == "", "R3M02", "")
+
+res = writeJsonTos3(dest_bucket, 'Output: Micro - Distributor R3 Type.json', df_start)
+
+'''#######  MICRO: COMPONENT 1 ITEM ID ##################################################################################################################################################################################################################################################################################################################################################################'''
+
+# Should I call getDF every time, I have the dataframe already.....
+
+df_start = getDF(dest_bucket, 'Output: Micro - Distributor R3 Type.json')
+
+df_start['EXCEPTION: COMPONENT1 ITEM ID IS BLANK'] = np.where(df_start['DISTRIBUTOR_COMPONENT1_ITEM_ID'] == "", "R3M03", "")
+
+#should I upload each file individually or create a bigger step with all exceptions in 1 
+
+res = writeJsonTos3(dest_bucket, 'Output: Micro - Distributor Component1 Item ID.json', df_start)
+
+'''#######  MICRO: COMPONENT 1 QUANTITY ##################################################################################################################################################################################################################################################################################################################################################################'''
+
+df_start = getDF(dest_bucket, 'Output: Micro - Distributor Component1 Item ID.json')
+
+df_start['EXCEPTION: COMPONENT1 QUANTITY IS BLANK'] = np.where(df_start['DISTRIBUTOR_COMPONENT1_QUANTITY'] == "", "R3M04", "")
+
+res = writeJsonTos3(dest_bucket, 'Output: Micro - Component1 Quantity.json', df_start)
+
+'''#######  MICRO: COMPONENT 1 UOM ##################################################################################################################################################################################################################################################################################################################################################################'''
+
+df_start = getDF(dest_bucket, 'Output: Micro - Component1 Quantity.json')
+
+df_start['EXCEPTION: COMPONENT1 UOM IS BLANK'] = np.where(df_start['DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT'] == "", "R3M05", "")
+
+res = writeJsonTos3(dest_bucket, 'Output: Micro - Component1 UoM.json', df_start)
+
+'''#######  MICRO: TAG RECORD TYPE ##################################################################################################################################################################################################################################################################################################################################################################'''
+
+df_start = getDF(dest_bucket, 'Output: Micro - Component1 UoM.json')
+
+df_start['RECORD_TYPE'] = "DISTRIBUTOR_R3_MASTER"
+
+res = writeJsonTos3(dest_bucket, 'Output: Micro - Tag Record Type.json', df_start)
 
 
 
