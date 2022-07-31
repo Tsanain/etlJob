@@ -121,102 +121,105 @@ res = putDf_To_S3(
 # res = putDf_To_S3(
 #     dest_bucket, 'R3 Exceptions: Component1 Item Quantity and Conversion Factor Do Not Match.json', lookup1)
 
-res = putDf_To_S3(
-    dest_bucket, 'R3 Exceptions: Component1 Item Quantity and Conversion Factor Do Not Match.json', dion_df)
+# res = putDf_To_S3(
+#     dest_bucket, 'R3 Exceptions: Component1 Item Quantity and Conversion Factor Do Not Match.json', dion_df)
 
 
-depivoted_df = pd.melt(dion_df, id_vars=['DISTRIBUTOR_R3_TYPE', 'DISTRIBUTOR_ITEM_ID', 'RECORD_TYPE', 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY', 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPANY_ID'],
-                       value_vars=['DISTRIBUTOR_COMPONENT1_ITEM_ID', 'DISTRIBUTOR_COMPONENT2_ITEM_ID',
-                                   'DISTRIBUTOR_COMPONENT3_ITEM_ID', 'DISTRIBUTOR_COMPONENT4_ITEM_ID'],
-                       var_name='REFERENCE', value_name='COMPONENT_COMPUTED'
-                       )
+# depivoted_df = pd.melt(dion_df, id_vars=['DISTRIBUTOR_R3_TYPE', 'DISTRIBUTOR_ITEM_ID', 'RECORD_TYPE', 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY', 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPANY_ID'],
+#                        value_vars=['DISTRIBUTOR_COMPONENT1_ITEM_ID', 'DISTRIBUTOR_COMPONENT2_ITEM_ID',
+#                                    'DISTRIBUTOR_COMPONENT3_ITEM_ID', 'DISTRIBUTOR_COMPONENT4_ITEM_ID'],
+#                        var_name='REFERENCE', value_name='COMPONENT_COMPUTED'
+#                        )
 
-depivoted_df['COMPONENT_COMPUTED'].replace('', np.nan, inplace=True)
+# depivoted_df['COMPONENT_COMPUTED'].replace('', np.nan, inplace=True)
 
-depivoted_df.dropna(subset=['COMPONENT_COMPUTED'], inplace=True)
-
-
-depivoted_df['UNIT_OF_MEASUREMENT(COMPUTED)'] = np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT1_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT,
-                                                         np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT2_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT,
-                                                                  np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT3_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT,
-                                                                           np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT4_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT, ''
-                                                                                    ))))
-
-depivoted_df['COMPONENT_QUANTITY(COMPUTED)'] = np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT1_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT1_QUANTITY,
-                                                        np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT2_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT2_QUANTITY,
-                                                                 np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT3_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT3_QUANTITY,
-                                                                          np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT4_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT4_QUANTITY, ''
-                                                                                   ))))
+# depivoted_df.dropna(subset=['COMPONENT_COMPUTED'], inplace=True)
 
 
-depivoted_df = depivoted_df.drop(columns=['DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT',
-                                          'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY'])
+# depivoted_df['UNIT_OF_MEASUREMENT(COMPUTED)'] = np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT1_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT,
+#                                                          np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT2_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT,
+#                                                                   np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT3_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT,
+#                                                                            np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT4_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT, ''
+#                                                                                     ))))
+
+# depivoted_df['COMPONENT_QUANTITY(COMPUTED)'] = np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT1_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT1_QUANTITY,
+#                                                         np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT2_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT2_QUANTITY,
+#                                                                  np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT3_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT3_QUANTITY,
+#                                                                           np.where(depivoted_df.REFERENCE == 'DISTRIBUTOR_COMPONENT4_ITEM_ID', depivoted_df.DISTRIBUTOR_COMPONENT4_QUANTITY, ''
+#                                                                                    ))))
 
 
-product_master_df_copy2 = product_master_df[['DISTRIBUTOR_ITEM_STATUS_DESCRIPTION', 'DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'DISTRIBUTOR_GALLON_CONVERSION_FACTOR', 'MANUFACTURER_NAME', 'DISTRIBUTOR_SALES_CODE_ID', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT',  
-                                            #'WARNING: BLANK DISTRIBUTOR PRICE UNIT OF MEASUREMENT',
-                                             #'WARNING: BLANK DISTRIBUTOR COST UNIT OF MEASUREMENT', 'WARNING: STANDARD COST IS GREATER THAN SELL PRICE', #not in file
-                                            # (2) diff versions exist at many cols
-                                             'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE',
-                                             #'Units per layer' not in json file.
-                                             'DISTRIBUTOR_PACK_DESCRIPTION', 'DISTRIBUTOR_UNITS_PER_LAYER'
-                                             ]]
+# depivoted_df = depivoted_df.drop(columns=['DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT',
+#                                           'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY'])
 
-lookup2 = pd.merge(depivoted_df, product_master_df_copy2,
-                   on='DISTRIBUTOR_ITEM_ID')  #some cols are missing
 
-output1 = lookup2.drop(columns=['DISTRIBUTOR_GALLON_CONVERSION_FACTOR', 'MANUFACTURER_NAME',
-                       'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', ])
+# product_master_df_copy2 = product_master_df[['DISTRIBUTOR_ITEM_STATUS_DESCRIPTION', 'DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'DISTRIBUTOR_GALLON_CONVERSION_FACTOR', 'MANUFACTURER_NAME', 'DISTRIBUTOR_SALES_CODE_ID', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT',  
+#                                             #'WARNING: BLANK DISTRIBUTOR PRICE UNIT OF MEASUREMENT',
+#                                              #'WARNING: BLANK DISTRIBUTOR COST UNIT OF MEASUREMENT', 'WARNING: STANDARD COST IS GREATER THAN SELL PRICE', #not in file
+#                                             # (2) diff versions exist at many cols
+#                                              'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE',
+#                                              #'Units per layer' not in json file.
+#                                              'DISTRIBUTOR_PACK_DESCRIPTION', 'DISTRIBUTOR_UNITS_PER_LAYER'
+#                                              ]]
 
-output1.rename(columns={'Columns': 'REFERENCE', 'COMPONENT_COMPUTED': 'DISTRIBUTOR_COMPONENT1_ITEM_ID', 'UNIT_OF_MEASUREMENT(COMPUTED)':
-               'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'COMPONENT_QUANTITY(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_ITEM_DESCRIPTION' : 'DISTRIBUTOR_ITEM_DESCRIPTION (DISTRIBUTOR_ITEM_ID)'}, inplace=True)
+# lookup2 = pd.merge(depivoted_df, product_master_df_copy2,
+#                    on='DISTRIBUTOR_ITEM_ID')  #some cols are missing
 
-#diff in rows: 987 on paxata - 930 here
-#diff in col: company_id extra here
+# output1 = lookup2.drop(columns=['DISTRIBUTOR_GALLON_CONVERSION_FACTOR', 'MANUFACTURER_NAME',
+#                        'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', ])
 
-res = putDf_To_S3(
-    dest_bucket, 'Output: R3 Table Before Sales Code Removal Step.json', output1)
-# MUTED on paxata
-#output2 = output1[output1['DISTRIBUTOR_SALES_CODE_ID'] != '4']
+# output1.rename(columns={'Columns': 'REFERENCE', 'COMPONENT_COMPUTED': 'DISTRIBUTOR_COMPONENT1_ITEM_ID', 'UNIT_OF_MEASUREMENT(COMPUTED)':
+#                'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'COMPONENT_QUANTITY(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_ITEM_DESCRIPTION' : 'DISTRIBUTOR_ITEM_DESCRIPTION (DISTRIBUTOR_ITEM_ID)'}, inplace=True)
 
-#output2.rename(columns={'Columns': 'REFERENCE', 'COMPONENT_COMPUTED': 'DISTRIBUTOR_COMPONENT1_ITEM_ID', 'UNIT_OF_MEASUREMENT(COMPUTED)':
-#                'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'COMPONENT_QUANTITY(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_QUANTITY'}, inplace=True)
-
+# #diff in rows: 987 on paxata - 930 here
+# #diff in col: company_id extra here
 
 # res = putDf_To_S3(
-#     dest_bucket, 'Output: Micro - De-Pivot R3 Table.json', output2)
+#     dest_bucket, 'Output: R3 Table Before Sales Code Removal Step.json', output1)
+# # MUTED on paxata
+# #output2 = output1[output1['DISTRIBUTOR_SALES_CODE_ID'] != '4']
 
-res = putDf_To_S3(
-      dest_bucket, 'Output: Micro - De-Pivot R3 Table.json', output1)
+# #output2.rename(columns={'Columns': 'REFERENCE', 'COMPONENT_COMPUTED': 'DISTRIBUTOR_COMPONENT1_ITEM_ID', 'UNIT_OF_MEASUREMENT(COMPUTED)':
+# #                'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'COMPONENT_QUANTITY(COMPUTED)': 'DISTRIBUTOR_COMPONENT1_QUANTITY'}, inplace=True)
 
 
-product_master_df_copy3 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT',
-                                            #(3)', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE (1)'
-                                             #'Units per layer' not in json file.
-                                             'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_INVENTORY_TYPE', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE', 'DISTRIBUTOR_UNITS_PER_LAYER'
-                                             ]]
+# # res = putDf_To_S3(
+# #     dest_bucket, 'Output: Micro - De-Pivot R3 Table.json', output2)
 
-product_master_df_copy3.rename({'DISTRIBUTOR_ITEM_DESCRIPTION' : 'DISTRIBUTOR_ITEM_DESCRIPTION (COMPONENT1)', 'MANUFACTURER_NAME' : 'MANUFACTURER_NAME (COMPONENT1)'}, inplace=True)
+# res = putDf_To_S3(
+#       dest_bucket, 'Output: Micro - De-Pivot R3 Table.json', output1)
 
-lookup3 = pd.merge(output1, product_master_df_copy3,
-                   left_on='DISTRIBUTOR_COMPONENT1_ITEM_ID', right_on='DISTRIBUTOR_ITEM_ID')
 
-lookup3 = lookup3.drop(
-    columns=['DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_INVENTORY_TYPE'])
+# product_master_df_copy3 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT',
+#                                             #(3)', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE (1)'
+#                                              #'Units per layer' not in json file.
+#                                              'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_INVENTORY_TYPE', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE', 'DISTRIBUTOR_UNITS_PER_LAYER'
+#                                              ]]
 
-printCol(lookup3)
-# diff in rows: 987 in paxata, 890 here.
+# product_master_df_copy3 = product_master_df_copy3.rename(columns={'DISTRIBUTOR_ITEM_ID' : 'DISTRIBUTOR_ITEM_ID (1)','DISTRIBUTOR_ITEM_DESCRIPTION' : 'DISTRIBUTOR_ITEM_DESCRIPTION (COMPONENT1)', 'MANUFACTURER_NAME' : 'MANUFACTURER_NAME (COMPONENT1)'})
 
-# df = lookup3.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID_x']).agg(COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID=pd.NamedAgg(
+# lookup3 = pd.merge(output1, product_master_df_copy3,
+#                    left_on='DISTRIBUTOR_COMPONENT1_ITEM_ID', right_on='DISTRIBUTOR_ITEM_ID (1)')
+
+
+# lookup3 = lookup3.drop(
+#     columns=['DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_INVENTORY_TYPE'])
+
+# print(lookup3.shape)
+# # diff in rows: 987 in paxata, 890 here.
+
+# df = lookup3.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID']).agg(COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID=pd.NamedAgg(
 #     column='DISTRIBUTOR_COMPONENT1_ITEM_ID', aggfunc="nunique")).reset_index()
 
 # df = df[df['COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID'] != 2]
 
-# df.rename(
-#     columns={'DISTRIBUTOR_ITEM_ID_x': 'DISTRIBUTOR_ITEM_ID'}, inplace=True)
+
+# print(df.shape)
 
 # res = putDf_To_S3(
 #     dest_bucket, "Output: Unique Source Item ID per Repack Item.json", df)
+
+#diff of 30 rows here.
 
 # '''---------- MICRO DEPIVOT SP TABLE -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
@@ -244,6 +247,8 @@ printCol(lookup3)
 #                                                                     np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT3_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT3_QUANTITY,
 #                                                                              np.where(depivoted_sp_df.Columns == 'DISTRIBUTOR_COMPONENT4_ITEM_ID', depivoted_sp_df.DISTRIBUTOR_COMPONENT4_QUANTITY, ''
 #                                                                                       ))))
+                                                                                      
+                                                                                      
 
 # depivoted_sp_df.drop(columns=['DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT',
 #                               'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY'], inplace=True)
@@ -259,17 +264,17 @@ printCol(lookup3)
 #                    on='DISTRIBUTOR_ITEM_ID')
 
 
+# # #diff in rows:44, 445 here, 489 in paxata, cols missing: DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE(2)
 # lookup4.drop(columns=['DISTRIBUTOR_SHIPPABLE_PRODUCT_GROUP'], inplace=True)
-
 
 # res = putDf_To_S3(
 #     dest_bucket, 'Output: SP R3 Table Before Sales Code Removal Step.json', lookup4)
 
-# #is this hidden?
-# lookup4_copy = lookup4[lookup4['DISTRIBUTOR_SALES_CODE_ID'] != '4']
+# #Muted in paxata
+# #lookup4_copy = lookup4[lookup4['DISTRIBUTOR_SALES_CODE_ID'] != '4']
 
 # res = putDf_To_S3(
-#     dest_bucket, 'Output: Micro - De-Pivot SP R3 Table.json', lookup4_copy)
+#     dest_bucket, 'Output: Micro - De-Pivot SP R3 Table.json', lookup4)
 
 # product_master_df_copy5 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME',
 #                                              'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE', 'DISTRIBUTOR_UNITS_PER_LAYER']]
@@ -277,15 +282,17 @@ printCol(lookup3)
 # product_master_df_copy5.rename(columns={'DISTRIBUTOR_ITEM_DESCRIPTION': 'DISTRIBUTOR_ITEM_DESCRIPTION (DISTRIBUTOR_ITEM_ID)',
 #                                'MANUFACTURER_NAME': 'MANUFACTURER_NAME (COMPONENT1)', 'DISTRIBUTOR_ITEM_ID': 'DISTRIBUTOR_ITEM_ID(1)'}, inplace=True)
 
-# #not sure if merge is on lookup4 or not.
-
 # lookup5 = pd.merge(lookup4, product_master_df_copy5,
 #                    left_on='DISTRIBUTOR_COMPONENT1_ITEM_ID', right_on='DISTRIBUTOR_ITEM_ID(1)')
 
 # lookup5.drop(columns=['DISTRIBUTOR_WAREHOUSE_ID'])
 
+# #diff in rows: 56, 489 in paxata, 433 here. cols missing are DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE(n)
+
 # df = lookup5.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID']).agg(COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID=pd.NamedAgg(
 #     column='DISTRIBUTOR_COMPONENT1_ITEM_ID', aggfunc="nunique")).reset_index()
+
+# #diff in rows:27 200 in paxata, 173 here.
 
 # res = putDf_To_S3(
 #     dest_bucket, "Output: SP Unique Source Item ID per Repack Item.json", df)
@@ -298,60 +305,71 @@ printCol(lookup3)
 # df_import = getDF_from_S3(
 #     dest_bucket, 'Output: SP R3 Table Before Sales Code Removal Step.json')
 
+
 # #Is this the way to append 2 dataframes..... 
 
 # df = pd.concat([df_start, df_import], axis=0, ignore_index=True)
 
+
+# #diff in rows: 100
 # df = df[df['DISTRIBUTOR_COMPANY_ID'] != 'SP']
+
+# #diff in rows: 57
 
 # df.drop(columns=['DISTRIBUTOR_COMPANY_ID', 'DISTRIBUTOR_PACK_DESCRIPTION',
 #         'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_UNITS_PER_LAYER'], inplace=True)
 
+# #diff in cols is: DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE(n)
+
 # res = putDf_To_S3(
 #     dest_bucket, 'Output: R3 Table for Product Master Join.json', df)
 
-# '''-------JOIN: UNIQUE SP SOURCE ITEM PER COMPONENT ITEM ID  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
+# '''-------DOUBT:merge how? JOIN: UNIQUE SP SOURCE ITEM PER COMPONENT ITEM ID  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
 # df_start = getDF_from_S3(dest_bucket, 'Output: Micro - De-Pivot SP R3 Table.json')
 
 # df_import = getDF_from_S3(
 #     dest_bucket, 'Output: SP Unique Source Item ID per Repack Item.json')
 
-# df = pd.merge(df_start, df_import, on="DISTRIBUTOR_ITEM_ID")
+# df = pd.merge(df_start,df_import, on="DISTRIBUTOR_ITEM_ID", how="left")
 
 # df.drop(columns=['REFERENCE', 'DISTRIBUTOR_SALES_CODE_ID', 'DISTRIBUTOR_PACK_DESCRIPTION',
 #         'DISTRIBUTOR_UNITS_PER_LAYER', 'RECORD_TYPE_y', 'COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID'], inplace=True)
 # df.rename(columns={'RECORD_TYPE_x': 'RECORD_TYPE'}, inplace=True)
 
+# print(df_start.shape)
+# print(df_import.shape)
+# print(df.shape)
+
 # res = putDf_To_S3(
 #     dest_bucket, 'Output: Join - Unique SP Source Item per Component Item ID.json', df)
 
-# '''-------- IMPORT PRODUCT MASTER ---upper  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
+'''-------- IMPORT PRODUCT MASTER ---upper  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
-# product_master_df_copy = product_master_df.drop(columns=['DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_INVENTORY_TYPE',
-#                                                 'DISTRIBUTOR_SHIPPABLE_PRODUCT_GROUP', 'DISTRIBUTOR_PACK_DESCRIPTION', 'DISTRIBUTOR_UNITS_PER_LAYER'])
+product_master_df_copy = product_master_df.drop(columns=['DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_INVENTORY_TYPE',
+                                                'DISTRIBUTOR_SHIPPABLE_PRODUCT_GROUP', 'DISTRIBUTOR_PACK_DESCRIPTION', 'DISTRIBUTOR_UNITS_PER_LAYER'])
 
-# res = putDf_To_S3(
-#     dest_bucket, "Output: Import - Product Master.json", product_master_df_copy)
+res = putDf_To_S3(
+    dest_bucket, "Output: Import - Product Master.json", product_master_df_copy)
 
-# '''------- JOIN: UNIQUE SOURCE ITEM PER COMPONENT ITEM ID  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
+'''------- JOIN: UNIQUE SOURCE ITEM PER COMPONENT ITEM ID  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
-# df_start = getDF_from_S3(dest_bucket, "Output: Micro - De-Pivot R3 Table.json")
-
-
-# df_import = getDF_from_S3(
-#     dest_bucket, "Output: Unique Source Item ID per Repack Item.json")
-
-# df = pd.merge(df_start, df_import, on='DISTRIBUTOR_ITEM_ID')
+df_start = getDF_from_S3(dest_bucket, "Output: Micro - De-Pivot R3 Table.json")
 
 
-# #On what column to remove rows -> remove row which have nan values for item_id -> join is done on item_id, how can it increase.....
-# #print(df[df['DISTRIBUTOR_ITEM_ID'] == '']) -> empty dataframe, so no mull values.
+df_import = getDF_from_S3(
+    dest_bucket, "Output: Unique Source Item ID per Repack Item.json")
 
-# df.drop(columns=['REFERENCE', 'DISTRIBUTOR_ITEM_STATUS_DESCRIPTION', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'DISTRIBUTOR_SALES_CODE_ID', 'DISTRIBUTOR_PACK_DESCRIPTION', 'DISTRIBUTOR_UNITS_PER_LAYER', 'COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID', 'RECORD_TYPE_y'], inplace=True)
-# df.rename(columns={'RECORD_TYPE_x' : 'RECORD_TYPE'}, inplace= True)
+df = pd.merge(df_start, df_import, on='DISTRIBUTOR_ITEM_ID')
 
-# res = putDf_To_S3(dest_bucket, 'Output: Join - Unique Source Item per Component Item ID.json', df)
+
+#On what column to remove rows -> remove row which have nan values for item_id -> join is done on item_id, how can it increase.....
+#print(df[df['DISTRIBUTOR_ITEM_ID'] == '']) -> empty dataframe, so no mull values.
+
+df.drop(columns=['REFERENCE', 'DISTRIBUTOR_ITEM_STATUS_DESCRIPTION', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'DISTRIBUTOR_SALES_CODE_ID', 'DISTRIBUTOR_PACK_DESCRIPTION', 'DISTRIBUTOR_UNITS_PER_LAYER', 'COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID', 'RECORD_TYPE_y'], inplace=True)
+df.rename(columns={'RECORD_TYPE_x' : 'RECORD_TYPE'}, inplace= True)
+
+res = putDf_To_S3(dest_bucket, 'Output: Join - Unique Source Item per Component Item ID.json', df)
 
 # '''
 # ------ IMPORT PRODUCT MASTER ---- lower  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

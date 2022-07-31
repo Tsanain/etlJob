@@ -1,4 +1,3 @@
-from fileinput import filename
 from aws_cdk import (
 
     Stack,
