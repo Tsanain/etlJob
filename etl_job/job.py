@@ -9,8 +9,8 @@ from datetime import timezone, datetime
 warnings.filterwarnings("ignore")
 
 # bucket names, input file names
-bucket, dion, sawyer, product_master = "tsan-bucket-trial", "Dion-DISTRIBUTOR_R3_MASTER-2022-07-04_19_00_00.json", "Sawyer-DISTRIBUTOR_R3_MASTER-2022-07-04_19_00_00.json", "Dion-PRODUCT_MASTER_DISTRIBUTOR_OUTPUT-yyyy-mm-dd_19_00_00.json"
-dest_bucket = "tsan-bucket-dest"
+bucket, dion, sawyer, product_master = "tsan-etljob-src", "Dion-DISTRIBUTOR_R3_MASTER-2022-07-04_19_00_00.json", "Sawyer-DISTRIBUTOR_R3_MASTER-2022-07-04_19_00_00.json", "Dion-PRODUCT_MASTER_DISTRIBUTOR_OUTPUT-yyyy-mm-dd_19_00_00.json"
+dest_bucket = "tsan-etljob-dest"
 
 # s3 sdk
 s3_obj = boto3.resource('s3')
@@ -638,6 +638,8 @@ cols = df_start.columns.to_list()
 cols = cols[-1:] + cols[:-1]
 
 df_start = df_start[cols]
+
+print(df_start.shape)
 
 res = putDf_To_S3(dest_bucket, "Distributor_R3_Master.json", df_start)
 

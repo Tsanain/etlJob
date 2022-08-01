@@ -18,11 +18,28 @@ class EtlJobStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
 
-        bucket_dest = s3.Bucket.from_bucket_arn(
-            self, id="tsan-data-bucket", bucket_arn="arn:aws:s3:::tsan-bucket-trial")
+        bucket_src = s3.Bucket.from_bucket_arn(
+            self, id="tsan-etljob-src", bucket_arn="arn:aws:s3:::tsan-etljob-src")
+
+        dest_bucket = s3.Bucket(
+            self, id="tsan-eltJob-dest", bucket_name="tsan-etljob-dest", versioned=False, block_public_access=s3.BlockPublicAccess.BLOCK_ALL) #if resource creation fails for s3:PutObject, delete the s3 bucket, remove the parameter "block_public_access", run cdk deploy, then add "block_public_access" to code and run cdk deploy, it does not work at once as blocking public access blocks the permission to edit bucket policy.
+
+        policy_doc = iam.PolicyStatement(actions=[
+                        "s3:GetObject",
+                        "s3:GetObjectVersion",
+                        "s3:PutObject"
+                    ],
+                    principals=[iam.AnyPrincipal()],
+                    resources=[dest_bucket.bucket_arn, dest_bucket.arn_for_objects('*')],
+                    )
+
+
+        dest_bucket.add_to_resource_policy(policy_doc)
+
 
         script_bucket = s3.Bucket(
             self, id="tsan-eltJob-script", bucket_name="tsan-etljob-script", versioned=False, block_public_access=s3.BlockPublicAccess.BLOCK_ALL)
+
 
 
         policy_doc = iam.PolicyStatement(actions=[
@@ -35,6 +52,7 @@ class EtlJobStack(Stack):
                     )
 
         script_bucket.add_to_resource_policy(policy_doc)
+
 
         s3_client.upload_file('etl_job/job.py', 'tsan-etljob-script','Scripts/job.py')
 
