@@ -65,9 +65,22 @@ def compCol(a, b):
         if (flag == 0):
             ans.append(col)
     return ans
+    
+def removesuffix_xy(df):
+    
+    for col in df.columns:
+        if(col.startswith("DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE")):
+            continue
+        if(col.endswith("_x")):
+            new = col[0: len(col) - 2]
+            df.rename(columns={col : new
+            }, inplace = True)
+        elif(col.endswith("_y")):
+            df.drop(columns= [col], inplace = True)
+    return df
 
 
-# get required inputs
+#get required inputs
 dion_df = getDF_from_S3(bucket, dion)
 # about 200 rows less, and cols with (n), in the other file 1000 rows extra and many cols absent.
 product_master_df = getDF_from_S3(bucket, product_master)
@@ -498,17 +511,29 @@ res = putDf_To_S3(dest_bucket, 'Output: SP R3 Table for Append.json', lookup1)
 
 '''-------APPEND: DS AND SP R3 TABLES ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
+# df_start = getDF_from_S3(
+#     dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json')
+
+# df_import = getDF_from_S3(dest_bucket, 'Output: SP R3 Table for Append.json')
+
+# df = pd.concat([df_start, df_import], axis=0, ignore_index=True)
+
+# # DOUBT in suffixes.
+
+# df.drop(columns=['DISTRIBUTOR_ITEM_DESCRIPTION', 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1', 'DISTRIBUTOR_COMPANY_ID', 'RECORD_TYPE_x', 'DISTRIBUTOR_R3_TYPE_x', 'DISTRIBUTOR_COMPANY_ID_x', 'DISTRIBUTOR_WAREHOUSE_ID_x',
+#         'DISTRIBUTOR_COMPONENT1_ITEM_ID_x', 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT_x', 'DISTRIBUTOR_COMPONENT1_CONVERSION_QUANTITY_x', 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1_x'], inplace=True)
+
 df_start = getDF_from_S3(
     dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json')
 
 df_import = getDF_from_S3(dest_bucket, 'Output: SP R3 Table for Append.json')
 
+df_import = removesuffix_xy(df_import)
+df_import.drop(columns=["DISTRIBUTOR_ITEM_ID (1)"], inplace=True)
+
+df_start = removesuffix_xy(df_start)
+
 df = pd.concat([df_start, df_import], axis=0, ignore_index=True)
-
-# DOUBT in suffixes.
-
-df.drop(columns=['DISTRIBUTOR_ITEM_DESCRIPTION', 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1', 'DISTRIBUTOR_COMPANY_ID', 'RECORD_TYPE_x', 'DISTRIBUTOR_R3_TYPE_x', 'DISTRIBUTOR_COMPANY_ID_x', 'DISTRIBUTOR_WAREHOUSE_ID_x',
-        'DISTRIBUTOR_COMPONENT1_ITEM_ID_x', 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT_x', 'DISTRIBUTOR_COMPONENT1_CONVERSION_QUANTITY_x', 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1_x'], inplace=True)
 
 res = putDf_To_S3(dest_bucket, 'Output: Append - DS and SP R3 Table.json', df)
 
@@ -627,10 +652,12 @@ df_start['DISTRIBUTOR_WAREHOUSE_ID'] = df_start['DISTRIBUTOR_WAREHOUSE_ID'].asty
     str)
 
 df_start.drop(columns=["EXCEPTION: DISTRIBUTOR ITEM ID IS BLANK", "EXCEPTION: R3 TYPE IS BLANK", "EXCEPTION: COMPONENT1 ITEM ID IS BLANK", "EXCEPTION: COMPONENT1 QUANTITY IS BLANK", "EXCEPTION: COMPONENT1 UOM IS BLANK",
-                       "DISTRIBUTOR_COMPONENT1_CONVERSION_QUANTITY", 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1_y'],
+                       "DISTRIBUTOR_COMPONENT1_CONVERSION_QUANTITY", 
+                       #'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1_y'
+                       ],
               inplace=True)
 
-df_start['RECORD_NUMBER'] = df_start.index
+df_start['RECORD_NUMBER'] = df_start.index + 1
 
 # code to move record_number to first
 cols = df_start.columns.to_list()
@@ -639,7 +666,7 @@ cols = cols[-1:] + cols[:-1]
 
 df_start = df_start[cols]
 
-print(df_start.shape)
+print(df_start)
 
 res = putDf_To_S3(dest_bucket, "Distributor_R3_Master.json", df_start)
 
