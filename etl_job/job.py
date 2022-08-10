@@ -100,6 +100,8 @@ output = dion_df[dion_df['COMPONENT 2,3,4'] == "remove"]
 res = putDf_To_S3(
     dest_bucket, "Exceptions: R3 Master Populated On Component 2,3 and 4.json", output)
 
+df_Exceptions_R3_Master_Populated_On_Component_2_3_and_4 = output
+
 dion_df_copy = dion_df[dion_df['COMPONENT 2,3,4'] != "remove"]
 
 dion_df.drop(columns=['COMPONENT 2,3,4'], inplace=True)
@@ -109,6 +111,8 @@ dion_df_copy.drop(columns=['COMPONENT 2,3,4'], inplace=True)
 # "%2f", "/"" can not use either of them, "-" used instead.
 res = putDf_To_S3(
     dest_bucket, "Output: Import - Append - R3 Table.json", dion_df_copy)
+
+df_Output_Import_Append_R3_Table = dion_df_copy
 
 '''---------- MIRCO DE-PIVOT R3 TABLE   ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 # MUTED on paxata
@@ -137,6 +141,7 @@ res = putDf_To_S3(
 res = putDf_To_S3(
     dest_bucket, 'R3 Exceptions: Component1 Item Quantity and Conversion Factor Do Not Match.json', dion_df)
 
+df_R3_Exceptions_Component1_Item_Quantity_and_Conversion_Factor_Do_Not_Match = dion_df
 
 depivoted_df = pd.melt(dion_df, id_vars=['DISTRIBUTOR_R3_TYPE', 'DISTRIBUTOR_ITEM_ID', 'RECORD_TYPE', 'DISTRIBUTOR_COMPONENT1_QUANTITY', 'DISTRIBUTOR_WAREHOUSE_ID', 'DISTRIBUTOR_COMPONENT2_QUANTITY', 'DISTRIBUTOR_COMPONENT3_QUANTITY', 'DISTRIBUTOR_COMPONENT4_QUANTITY', 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT2_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT3_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPONENT4_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_COMPANY_ID'],
                        value_vars=['DISTRIBUTOR_COMPONENT1_ITEM_ID', 'DISTRIBUTOR_COMPONENT2_ITEM_ID',
@@ -187,6 +192,8 @@ output1.rename(columns={'Columns': 'REFERENCE', 'COMPONENT_COMPUTED': 'DISTRIBUT
 res = putDf_To_S3(
     dest_bucket, 'Output: R3 Table Before Sales Code Removal Step.json', output1)
 
+df_Output_R3_Table_Before_Sales_Code_Removal_Step = output1
+
 # # MUTED on paxata
 # #output2 = output1[output1['DISTRIBUTOR_SALES_CODE_ID'] != '4']
 
@@ -200,6 +207,7 @@ res = putDf_To_S3(
 res = putDf_To_S3(
     dest_bucket, 'Output: Micro - De-Pivot R3 Table.json', output1)
 
+df_Output_Micro_De_Pivot_R3_Table = output1
 
 product_master_df_copy3 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT',
                                             # (3)', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE (1)'
@@ -225,6 +233,8 @@ df = df[df['COUNT_DISTINCT_DISTRIBUTOR_COMPONENT1_ITEM_ID'] != 2]
 
 res = putDf_To_S3(
     dest_bucket, "Output: Unique Source Item ID per Repack Item.json", df)
+
+df_Output_Unique_Source_Item_ID_per_Repack_Item = df
 
 '''---------- MICRO DEPIVOT SP TABLE -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
@@ -271,11 +281,14 @@ lookup4.drop(columns=['DISTRIBUTOR_SHIPPABLE_PRODUCT_GROUP'], inplace=True)
 res = putDf_To_S3(
     dest_bucket, 'Output: SP R3 Table Before Sales Code Removal Step.json', lookup4)
 
+df_Output_SP_R3_Table_Before_Sales_Code_Removal_Step = lookup4
 #Muted in paxata
 #lookup4_copy = lookup4[lookup4['DISTRIBUTOR_SALES_CODE_ID'] != '4']
 
 res = putDf_To_S3(
     dest_bucket, 'Output: Micro - De-Pivot SP R3 Table.json', lookup4)
+
+df_Output_Micro_De_Pivot_SP_R3_Table = lookup4
 
 product_master_df_copy5 = product_master_df[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'MANUFACTURER_NAME',
                                              'DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE', 'DISTRIBUTOR_UNITS_PER_LAYER']]
@@ -294,6 +307,8 @@ df = lookup5.groupby(['RECORD_TYPE', 'DISTRIBUTOR_ITEM_ID']).agg(COUNT_DISTINCT_
 
 res = putDf_To_S3(
     dest_bucket, "Output: SP Unique Source Item ID per Repack Item.json", df)
+
+df_Output_SP_Unique_Source_Item_ID_per_Repack_Item = df
 
 '''---------- MICRO: R3 FOR PRODUCT MASTER JOIN  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
@@ -322,6 +337,8 @@ df.drop(columns=['DISTRIBUTOR_COMPANY_ID', 'DISTRIBUTOR_PACK_DESCRIPTION',
 res = putDf_To_S3(
     dest_bucket, 'Output: R3 Table for Product Master Join.json', df)
 
+df_Output_R3_Table_for_Product_Master_Join = df
+
 '''------- JOIN: UNIQUE SP SOURCE ITEM PER COMPONENT ITEM ID  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
 df_start = getDF_from_S3(
@@ -339,6 +356,8 @@ df.rename(columns={'RECORD_TYPE_x': 'RECORD_TYPE'}, inplace=True)
 res = putDf_To_S3(
     dest_bucket, 'Output: Join - Unique SP Source Item per Component Item ID.json', df)
 
+df_Output_Join_Unique_SP_Source_Item_per_Component_Item_ID = df
+
 '''-------- IMPORT PRODUCT MASTER ---upper  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
 product_master_df_copy = product_master_df.drop(columns=['DISTRIBUTOR_REPORTING_ITEM_ID', 'DISTRIBUTOR_INVENTORY_TYPE',
@@ -346,6 +365,8 @@ product_master_df_copy = product_master_df.drop(columns=['DISTRIBUTOR_REPORTING_
 
 res = putDf_To_S3(
     dest_bucket, "Output: Import - Product Master.json", product_master_df_copy)
+
+df_Output_Import_Product_Master = product_master_df_copy
 
 '''------- JOIN: UNIQUE SOURCE ITEM PER COMPONENT ITEM ID  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
@@ -366,6 +387,8 @@ df.rename(columns={'RECORD_TYPE_x': 'RECORD_TYPE'}, inplace=True)
 
 res = putDf_To_S3(
     dest_bucket, 'Output: Join - Unique Source Item per Component Item ID.json', df)
+
+df_Output_Join_Unique_Source_Item_per_Component_Item_ID = df
 
 '''
 ------ IMPORT PRODUCT MASTER ---- lower  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -428,13 +451,12 @@ lookup2.drop(columns=['DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT (repack)',
 res = putDf_To_S3(
     dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (upper).json', lookup2)
 
+df_Output_Join_Product_Master_to_Compute_Correct_Item_Quantity_upper = lookup2
 
 '''-------JOIN: PRODUCT MASTER TO COMPUTE CORRECT ITEM QUANTITY lower ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
-df_start = getDF_from_S3(
-    dest_bucket, 'Output: Join - Unique Source Item per Component Item ID.json')
-
-df_import = getDF_from_S3(dest_bucket, 'Output: Import - Product Master.json')
+df_start = df_Output_Join_Unique_Source_Item_per_Component_Item_ID
+df_import = df_Output_Import_Product_Master
 
 df_import = df_import[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_PACK_COUNT_DESCRIPTION',
                       'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE', 'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE']]
@@ -455,7 +477,7 @@ lookup1.rename(columns={'DISTRIBUTOR_COMPONENT1_QUANTITY': 'DISTRIBUTOR_COMPONEN
 
 lookup1.drop(columns=['DISTRIBUTOR_PACK_COUNT_DESCRIPTION'], inplace=True)
 
-df_import2 = getDF_from_S3(dest_bucket, 'Output: Import - Product Master.json')
+df_import2 = df_Output_Import_Product_Master
 
 df_import2 = df_import2[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_ITEM_DESCRIPTION', 'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT',
                          'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE']]
@@ -465,7 +487,7 @@ df_import2.rename(columns={
 
 lookup2 = pd.merge(lookup1, df_import2, on='DISTRIBUTOR_ITEM_ID', how="left")
 
-df_import3 = getDF_from_S3(dest_bucket, 'Output: Import - Product Master.json')
+df_import3 =df_Output_Import_Product_Master
 
 df_import3 = df_import3[['DISTRIBUTOR_ITEM_ID', 'DISTRIBUTOR_BASE_UNIT_OF_MEASUREMENT',
                          'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE']]
@@ -488,14 +510,12 @@ lookup3.drop(columns=['DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE
 res = putDf_To_S3(
     dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json', lookup3)
 
+df_Output_Join_Product_Master_to_Compute_Correct_Item_Quantity_lower = lookup3
+
 '''-------JOIN: DS AND SP R3 TABLES ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
-df_start = getDF_from_S3(
-    dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (upper).json')
-
-df_import = getDF_from_S3(
-    dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json')
-
+df_start = df_Output_Join_Product_Master_to_Compute_Correct_Item_Quantity_upper
+df_import = df_Output_Join_Product_Master_to_Compute_Correct_Item_Quantity_lower
 # Doubt: is it okay to drop dupliactes here? else number of rows was going 1762+
 df_import.drop_duplicates(subset="DISTRIBUTOR_ITEM_ID", inplace=True)
 
@@ -509,12 +529,15 @@ lookup1 = lookup1[lookup1['DISTRIBUTOR_ITEM_ID (1)'].isnull()]
 
 res = putDf_To_S3(dest_bucket, 'Output: SP R3 Table for Append.json', lookup1)
 
+df_Output_SP_R3_Table_for_Append = lookup1
+
+
 '''-------APPEND: DS AND SP R3 TABLES ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
-# df_start = getDF_from_S3(
-#     dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json')
+df_start = getDF_from_S3(
+    dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json')
 
-# df_import = getDF_from_S3(dest_bucket, 'Output: SP R3 Table for Append.json')
+df_import = getDF_from_S3(dest_bucket, 'Output: SP R3 Table for Append.json')
 
 # df = pd.concat([df_start, df_import], axis=0, ignore_index=True)
 
@@ -523,12 +546,8 @@ res = putDf_To_S3(dest_bucket, 'Output: SP R3 Table for Append.json', lookup1)
 # df.drop(columns=['DISTRIBUTOR_ITEM_DESCRIPTION', 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1', 'DISTRIBUTOR_COMPANY_ID', 'RECORD_TYPE_x', 'DISTRIBUTOR_R3_TYPE_x', 'DISTRIBUTOR_COMPANY_ID_x', 'DISTRIBUTOR_WAREHOUSE_ID_x',
 #         'DISTRIBUTOR_COMPONENT1_ITEM_ID_x', 'DISTRIBUTOR_COMPONENT1_UNIT_OF_MEASUREMENT_x', 'DISTRIBUTOR_COMPONENT1_CONVERSION_QUANTITY_x', 'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1_x'], inplace=True)
 
-df_start = getDF_from_S3(
-    dest_bucket, 'Output: Join Product Master to Compute Correct Item Quantity (lower).json')
-
-df_import = getDF_from_S3(dest_bucket, 'Output: SP R3 Table for Append.json')
-
 df_import = removesuffix_xy(df_import)
+
 df_import.drop(columns=["DISTRIBUTOR_ITEM_ID (1)"], inplace=True)
 
 df_start = removesuffix_xy(df_start)
@@ -537,10 +556,11 @@ df = pd.concat([df_start, df_import], axis=0, ignore_index=True)
 
 res = putDf_To_S3(dest_bucket, 'Output: Append - DS and SP R3 Table.json', df)
 
+df_Output_Append_DS_and_SP_R3_Table = df
+
 '''---------- MICRO: VALIDATE ITEM ID -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
-df_start = getDF_from_S3(
-    dest_bucket, 'Output: Append - DS and SP R3 Table.json')
+df_start = df_Output_Append_DS_and_SP_R3_Table
 
 df_start['EXCEPTION: DISTRIBUTOR ITEM ID IS BLANK'] = np.where(
     df_start['DISTRIBUTOR_ITEM_ID'] == '', "R3M01", "")
@@ -617,6 +637,8 @@ df_start['EXCEPTION_REASON'] = df_start['ALL_EXCEPTIONS']
 res = putDf_To_S3(
     dest_bucket, "Output: Macro - Publish Exceptions.json", df_start)
 
+df_Output_Macro_Publish_Exceptions = df_start
+
 '''---------- IMPORT: TIMESTAMP FIX TABLE -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
 ct = datetime.now(timezone.utc)
@@ -629,13 +651,13 @@ df['TIMESTAMP'] = df['TIMESTAMP'].astype(str)
 
 res = putDf_To_S3(dest_bucket, "Output: Import - Timestamp Fix Table.json", df)
 
+df_Output_Import_Timestamp_Fix_Table = df
+
 '''-------JOIN: TIMESTAMP FIX TABLE  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
-df_start = getDF_from_S3(
-    dest_bucket, "Output: Macro - Publish Exceptions.json")
+df_start = df_Output_Macro_Publish_Exceptions
 
-df_import = getDF_from_S3(
-    dest_bucket, "Output: Import - Timestamp Fix Table.json")
+df_import = df_Output_Import_Timestamp_Fix_Table
 
 df = pd.merge(df_start, df_import, on="RECORD_TYPE", how="left")
 
@@ -643,10 +665,11 @@ df.drop(columns=["ALL_EXCEPTIONS", "EXCEPTION_REASON"], inplace=True)
 
 res = putDf_To_S3(dest_bucket, "Output: Join - Timestamp Fix Table.json", df)
 
+df_Output_Join_Timestamp_Fix_Table = df
+
 '''-------OUTPUT: PUBLISH R3 MASTER  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 
-df_start = getDF_from_S3(
-    dest_bucket, "Output: Join - Timestamp Fix Table.json")
+df_start = df_Output_Join_Timestamp_Fix_Table
 
 df_start['DISTRIBUTOR_WAREHOUSE_ID'] = df_start['DISTRIBUTOR_WAREHOUSE_ID'].astype(
     str)
