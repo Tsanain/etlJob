@@ -69,9 +69,13 @@ def compCol(a, b):
 def removesuffix_xy(df):
     
     for col in df.columns:
-        if(col.startswith("DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE")):
-            continue
-        if(col.endswith("_x")):
+        if(col == ("DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE_x")):
+            new = col[0: len(col) - 2]
+            df.rename(columns={col : new
+            }, inplace = True)
+        elif(col.startswith("DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE_") and col != ("DISTRIBUTOR_ITEM_INVENTORY_STATUS_CODE_x")): 
+            df.drop(columns= [col], inplace = True)
+        elif(col.endswith("_x")):
             new = col[0: len(col) - 2]
             df.rename(columns={col : new
             }, inplace = True)
@@ -81,7 +85,7 @@ def removesuffix_xy(df):
 
 
 #get required inputs
-dion_df = getDF_from_S3(bucket, dion)
+dion_df = getDF_from_S3(bucket, dion) # record number 434
 # about 200 rows less, and cols with (n), in the other file 1000 rows extra and many cols absent.
 product_master_df = getDF_from_S3(bucket, product_master)
 
@@ -182,6 +186,7 @@ product_master_df_copy2 = product_master_df[['DISTRIBUTOR_ITEM_STATUS_DESCRIPTIO
 
 lookup2 = pd.merge(depivoted_df, product_master_df_copy2,
                    on='DISTRIBUTOR_ITEM_ID', how="left")  # some cols are missing
+
 
 output1 = lookup2.drop(columns=['DISTRIBUTOR_GALLON_CONVERSION_FACTOR', 'MANUFACTURER_NAME',
                        'DISTRIBUTOR_COST_UNIT_OF_MEASUREMENT', 'DISTRIBUTOR_PRICE_UNIT_OF_MEASUREMENT', ])
@@ -676,7 +681,7 @@ df_start['DISTRIBUTOR_WAREHOUSE_ID'] = df_start['DISTRIBUTOR_WAREHOUSE_ID'].asty
 
 df_start.drop(columns=["EXCEPTION: DISTRIBUTOR ITEM ID IS BLANK", "EXCEPTION: R3 TYPE IS BLANK", "EXCEPTION: COMPONENT1 ITEM ID IS BLANK", "EXCEPTION: COMPONENT1 QUANTITY IS BLANK", "EXCEPTION: COMPONENT1 UOM IS BLANK",
                        "DISTRIBUTOR_COMPONENT1_CONVERSION_QUANTITY", 
-                       #'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1_y'
+                       'EXCEPTION: BASE UOM IS NOT "GAL" FOR COMPONENT QUANTITY 1'
                        ],
               inplace=True)
 
@@ -689,7 +694,6 @@ cols = cols[-1:] + cols[:-1]
 
 df_start = df_start[cols]
 
-print(df_start)
 
 res = putDf_To_S3(dest_bucket, "Distributor_R3_Master.json", df_start)
 
